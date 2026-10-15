@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.env
+leads.csv
+demo_leads.csv
+.DS_Store
