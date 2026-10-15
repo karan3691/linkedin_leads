@@ -4,3 +4,5 @@ __pycache__/
 leads.csv
 demo_leads.csv
 .DS_Store
+.vercel
+.env*

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f6f2">
+  <title>Scrappy · Lead finder</title>
+  <style>
+    :root { color-scheme: light; --ink:#19231f; --muted:#68736d; --line:#e2e5df; --paper:#fff; --bg:#f7f6f2; --green:#176b51; --pale:#e6f1eb; }
+    * { box-sizing:border-box } body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif }
+    .shell { max-width:1120px; margin:0 auto; padding:34px 24px 60px }
+    header { display:flex; justify-content:space-between; align-items:center; margin-bottom:48px }
+    .brand { font-size:19px; font-weight:750; letter-spacing:-.04em }.brand span { color:var(--green) }
+    .status { color:var(--muted); font-size:13px }.dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:#d39c3e; margin-right:8px }
+    .intro { max-width:700px; margin-bottom:28px }.eyebrow { text-transform:uppercase; letter-spacing:.13em; font-weight:700; font-size:11px; color:var(--green) }
+    h1 { font-size:clamp(36px,6vw,58px); letter-spacing:-.065em; line-height:1.02; margin:12px 0 14px }.intro p { margin:0; color:var(--muted); font-size:17px }
+    .panel { background:var(--paper); border:1px solid var(--line); border-radius:16px; padding:22px; box-shadow:0 8px 30px #1b2a2010 }
+    form { display:grid; grid-template-columns:minmax(230px,1fr) 160px 150px auto; gap:12px; align-items:end }
+    label { display:block; color:var(--muted); font-size:12px; font-weight:650; margin:0 0 7px }
+    input,select { height:44px; border:1px solid var(--line); border-radius:9px; padding:0 12px; width:100%; font:inherit; color:var(--ink); background:#fff }
+    button { border:0; border-radius:9px; height:44px; padding:0 18px; font:inherit; font-weight:700; cursor:pointer }
+    .primary { background:var(--green); color:white }.primary:disabled { opacity:.55; cursor:wait }
+    .options { display:flex; gap:22px; align-items:center; margin-top:17px; color:var(--muted); font-size:13px }
+    .check { display:flex; gap:8px; align-items:center; cursor:pointer }.check input { width:15px; height:15px; accent-color:var(--green) }
+    .hint { color:var(--muted); font-size:12px; margin:14px 0 0 }
+    .demo { color:var(--green); background:var(--pale); height:34px; padding:0 12px; font-size:12px }
+    .results-head { display:flex; align-items:center; justify-content:space-between; margin:32px 0 12px }.results-head h2 { margin:0; font-size:19px; letter-spacing:-.03em }.count { color:var(--muted); font-size:13px }
+    .table-wrap { overflow:auto; border:1px solid var(--line); border-radius:12px; background:white } table { width:100%; border-collapse:collapse; min-width:760px } th,td { padding:13px 15px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top } th { color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.08em; background:#fbfcfa } tr:last-child td { border-bottom:0 }
+    .person { font-weight:700 }.sub { font-size:12px; color:var(--muted); margin-top:3px }.pill { color:var(--green); background:var(--pale); font-size:11px; border-radius:999px; padding:4px 8px; white-space:nowrap }.score { font-variant-numeric:tabular-nums; font-weight:700 }.profile { color:var(--green); text-decoration:none; font-size:12px }.message { max-width:340px; font-size:12px; color:#4a554f }.empty { text-align:center; padding:46px 20px; color:var(--muted) }
+    .notice { padding:12px 14px; border-radius:9px; margin-top:16px; font-size:13px; display:none }.notice.error { display:block; color:#842d24; background:#fff0ed }.notice.info { display:block; color:#4e5a53; background:#f1f3ef }
+    @media(max-width:760px) { .shell{padding:24px 16px 42px} header{margin-bottom:35px} form{grid-template-columns:1fr 1fr}.query-field{grid-column:1/-1}.primary{width:100%}.options{flex-wrap:wrap;gap:12px 18px}.panel{padding:17px} }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header><div class="brand">scrappy<span>.</span></div><div class="status"><i class="dot"></i><span id="mode">Ready</span></div></header>
+    <section class="intro"><div class="eyebrow">Search-based prospecting</div><h1>Find your next<br>good conversation.</h1><p>Discover public LinkedIn profiles showing interest in data analytics roles, courses, or a career change.</p></section>
+    <section class="panel">
+      <form id="search-form">
+        <div class="query-field"><label for="query">Search intent</label><select id="query"><option value="all">All intent searches · India</option><option value="bootcamp">Bootcamp and course seekers</option><option value="jobs">Data analyst job seekers</option><option value="switchers">Career switchers</option></select></div>
+        <div><label for="min-score">Minimum score</label><select id="min-score"><option value="2">2 · Broad</option><option value="3" selected>3 · Balanced</option><option value="5">5 · Strong intent</option></select></div>
+        <div><label for="pages">Pages per search</label><select id="pages"><option value="1" selected>1 page</option><option value="2">2 pages</option></select></div>
+        <button class="primary" id="submit" type="submit">Find leads</button>
+      </form>
+      <div class="options"><label class="check"><input id="unknown" type="checkbox"> Include profiles without a visible location</label><button class="demo" id="demo" type="button">Try sample results</button></div>
+      <p class="hint">Searches public Google results only. Profile locations can be missing or outdated; review each result before contacting anyone.</p>
+      <div class="notice" id="notice" role="status"></div>
+    </section>
+    <section class="results-head"><h2>Results</h2><span class="count" id="count">No search yet</span></section>
+    <div id="results" class="table-wrap"><div class="empty">Run a search or try the sample results to see leads here.</div></div>
+  </main>
+  <script>
+    const form = document.querySelector('#search-form'), submit = document.querySelector('#submit'), notice = document.querySelector('#notice');
+    let currentLeads = [];
+    function showNotice(message, kind='info') { notice.textContent = message; notice.className = `notice ${kind}`; }
+    function escapeHtml(s='') { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+    function render(leads) {
+      currentLeads = leads; document.querySelector('#count').textContent = `${leads.length} ${leads.length === 1 ? 'lead' : 'leads'}`;
+      if (!leads.length) { document.querySelector('#results').innerHTML = '<div class="empty">No matching leads found. Try lowering the minimum score or including unknown locations.</div>'; return; }
+      const rows = leads.map(l => `<tr><td><div class="person">${escapeHtml(l.name)}</div><div class="sub">${escapeHtml(l.headline)}</div></td><td><span class="pill">${escapeHtml(l.category.replaceAll('_',' '))}</span></td><td class="score">${escapeHtml(l.score)}</td><td><a class="profile" href="${escapeHtml(l.profile_url)}" target="_blank" rel="noopener">View profile ↗</a><div class="sub">${escapeHtml(l.intent_phrase)}</div></td><td class="message">${escapeHtml(l.suggested_message)}</td></tr>`).join('');
+      document.querySelector('#results').innerHTML = `<table><thead><tr><th>Person</th><th>Intent</th><th>Score</th><th>Profile</th><th>Suggested message</th></tr></thead><tbody>${rows}</tbody></table>`;
+      document.querySelector('#download')?.remove();
+      const csvButton = document.createElement('button'); csvButton.id='download'; csvButton.className='demo'; csvButton.textContent='Download CSV'; csvButton.onclick=downloadCsv; document.querySelector('.results-head').append(csvButton);
+    }
+    function downloadCsv() {
+      const fields=['name','category','score','intent_phrase','headline','profile_url','matched_query','snippet','suggested_message'];
+      const quote=v=>'"'+String(v??'').replaceAll('"','""')+'"';
+      const csv=[fields.join(','),...currentLeads.map(l=>fields.map(f=>quote(l[f])).join(','))].join('\r\n');
+      const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='scrappy-leads.csv';a.click();URL.revokeObjectURL(a.href);
+    }
+    async function search(demo=false) {
+      submit.disabled=true; submit.textContent='Searching…'; document.querySelector('#mode').textContent=demo?'Sample mode':'Searching'; notice.className='notice';
+      try {
+        const response=await fetch('/api/search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({demo, intent:document.querySelector('#query').value,min_score:Number(document.querySelector('#min-score').value),pages:Number(document.querySelector('#pages').value),include_unknown:document.querySelector('#unknown').checked})});
+        const data=await response.json(); if(!response.ok) throw new Error(data.error||'Search failed.');
+        render(data.leads); showNotice(data.message||'Search complete. Review the profiles and snippets before reaching out.'); document.querySelector('#mode').textContent=demo?'Sample results':'Search complete';
+      } catch(e) { showNotice(e.message,'error'); document.querySelector('#mode').textContent='Needs setup'; }
+      finally { submit.disabled=false; submit.textContent='Find leads'; }
+    }
+    form.addEventListener('submit',e=>{e.preventDefault();search(false)}); document.querySelector('#demo').addEventListener('click',()=>search(true));
+  </script>
+</body>
+</html>
