@@ -8,7 +8,9 @@ Search results come from Google through [SerpAPI](https://serpapi.com/). They re
 
 Open [scrappy-alpha-ten.vercel.app](https://scrappy-alpha-ten.vercel.app/), choose a search intent and filters, then select **Find leads**. Use **Try sample results** to see example data without running a live search. Select **Download CSV** to save the displayed results.
 
-Available intents are all searches, bootcamp and course seekers, data analyst job seekers, and career switchers. By default, profiles without a visible India location hint are excluded; the location option can include profiles without a visible location. Google snippets may be incomplete, so this is only a rough location filter.
+Available intents are all searches, bootcamp and course seekers, data analyst job seekers, and career switchers. The web app includes only profiles whose public search result shows an India location hint. Google snippets may be incomplete, so this is only a rough location filter.
+
+Each result has an optional **Find public email** action. It makes one additional SerpAPI search for that profile and displays an address only when a matching public result includes both contact context and an email, along with a link to review the source. Scrappy does not guess addresses or scrape LinkedIn pages. Email lookup may return no result even when a person has a public address.
 
 ## Run locally
 
@@ -59,7 +61,7 @@ The API reads the key on the server; do not put it in `index.html` or commit it 
 
 ## Current service limits and considerations
 
-- Live web searches use your SerpAPI account and may consume its search quota. The public `/api/search` endpoint currently has no sign-in or rate limit, so anyone who can access the app can trigger searches against that account. Add access control or rate limiting before sharing the app widely.
+- Live web searches and each requested public email lookup use your SerpAPI account and may consume its search quota. The public `/api/search` and `/api/email` endpoints currently have no sign-in or rate limit, so anyone who can access the app can trigger requests against that account. Add access control or rate limiting before sharing the app widely.
 - A full search can make up to 12 provider requests per page. Each request may take up to 30 seconds; Vercel is configured with a 60-second function limit. Slow provider responses can cause a search to time out or return incomplete results.
 - Some provider failures are reported as a warning alongside results. An empty result does not necessarily mean no matching profiles exist.
 - Lead scores are simple text matches against public search titles and snippets. They are not verified intent or an endorsement to contact someone.
@@ -70,5 +72,6 @@ The API reads the key on the server; do not put it in `index.html` or commit it 
 
 - `index.html` — browser interface and CSV export.
 - `api/search.py` — Vercel search endpoint.
+- `api/email.py` — on-demand public email lookup endpoint.
 - `leads_finder.py` — search, filtering, scoring, and CLI implementation.
 - `vercel.json` — Vercel function configuration.

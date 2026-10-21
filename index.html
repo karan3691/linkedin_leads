@@ -26,7 +26,7 @@
     .demo { color:var(--green); background:var(--pale); height:34px; padding:0 12px; font-size:12px }
     .results-head { display:flex; align-items:center; justify-content:space-between; margin:32px 0 12px }.results-head h2 { margin:0; font-size:19px; letter-spacing:-.03em }.count { color:var(--muted); font-size:13px }
     .table-wrap { overflow:auto; border:1px solid var(--line); border-radius:12px; background:white } table { width:100%; border-collapse:collapse; min-width:760px } th,td { padding:13px 15px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top } th { color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.08em; background:#fbfcfa } tr:last-child td { border-bottom:0 }
-    .person { font-weight:700 }.sub { font-size:12px; color:var(--muted); margin-top:3px }.pill { color:var(--green); background:var(--pale); font-size:11px; border-radius:999px; padding:4px 8px; white-space:nowrap }.score { font-variant-numeric:tabular-nums; font-weight:700 }.profile { color:var(--green); text-decoration:none; font-size:12px }.message { max-width:340px; font-size:12px; color:#4a554f }.empty { text-align:center; padding:46px 20px; color:var(--muted) }
+    .person { font-weight:700 }.sub { font-size:12px; color:var(--muted); margin-top:3px }.pill { color:var(--green); background:var(--pale); font-size:11px; border-radius:999px; padding:4px 8px; white-space:nowrap }.score { font-variant-numeric:tabular-nums; font-weight:700 }.profile { color:var(--green); text-decoration:none; font-size:12px }.message { max-width:340px; font-size:12px; color:#4a554f }.email-cell { min-width:180px }.email-cell a { color:var(--green); overflow-wrap:anywhere }.empty { text-align:center; padding:46px 20px; color:var(--muted) }
     .notice { padding:12px 14px; border-radius:9px; margin-top:16px; font-size:13px; display:none }.notice.error { display:block; color:#842d24; background:#fff0ed }.notice.info { display:block; color:#4e5a53; background:#f1f3ef }
     @media(max-width:760px) { .shell{padding:24px 16px 42px} header{margin-bottom:35px} form{grid-template-columns:1fr 1fr}.query-field{grid-column:1/-1}.primary{width:100%}.options{flex-wrap:wrap;gap:12px 18px}.panel{padding:17px} }
   </style>
@@ -42,8 +42,9 @@
         <div><label for="pages">Pages per search</label><select id="pages"><option value="1" selected>1 page</option><option value="2">2 pages</option></select></div>
         <button class="primary" id="submit" type="submit">Find leads</button>
       </form>
-      <div class="options"><label class="check"><input id="unknown" type="checkbox"> Include profiles without a visible location</label><button class="demo" id="demo" type="button">Try sample results</button></div>
-      <p class="hint">Searches public Google results only. Profile locations can be missing or outdated; review each result before contacting anyone.</p>
+      <div class="options"><button class="demo" id="demo" type="button">Try sample results</button></div>
+      <p class="hint">Only profiles with a visible India location hint are included. Search results can be incomplete or outdated; review each result before contacting anyone.</p>
+      <p class="hint">Public email lookup is optional and runs only when requested for a lead. It shows an email only when it appears with matching identity and contact context in indexed public results, with a source link to review. It does not guess addresses.</p>
       <div class="notice" id="notice" role="status"></div>
     </section>
     <section class="results-head"><h2>Results</h2><span class="count" id="count">No search yet</span></section>
@@ -56,22 +57,39 @@
     function escapeHtml(s='') { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
     function render(leads) {
       currentLeads = leads; document.querySelector('#count').textContent = `${leads.length} ${leads.length === 1 ? 'lead' : 'leads'}`;
-      if (!leads.length) { document.querySelector('#results').innerHTML = '<div class="empty">No matching leads found. Try lowering the minimum score or including unknown locations.</div>'; return; }
-      const rows = leads.map(l => `<tr><td><div class="person">${escapeHtml(l.name)}</div><div class="sub">${escapeHtml(l.headline)}</div></td><td><span class="pill">${escapeHtml(l.category.replaceAll('_',' '))}</span></td><td class="score">${escapeHtml(l.score)}</td><td><a class="profile" href="${escapeHtml(l.profile_url)}" target="_blank" rel="noopener">View profile ↗</a><div class="sub">${escapeHtml(l.intent_phrase)}</div></td><td class="message">${escapeHtml(l.suggested_message)}</td></tr>`).join('');
-      document.querySelector('#results').innerHTML = `<table><thead><tr><th>Person</th><th>Intent</th><th>Score</th><th>Profile</th><th>Suggested message</th></tr></thead><tbody>${rows}</tbody></table>`;
+      if (!leads.length) { document.querySelector('#results').innerHTML = '<div class="empty">No matching India-based leads found. Try lowering the minimum score.</div>'; return; }
+      const rows = leads.map((l, i) => {
+        const emailCell = l.email
+          ? `<a href="mailto:${escapeHtml(l.email)}">${escapeHtml(l.email)}</a><div class="sub"><a href="${escapeHtml(l.email_source)}" target="_blank" rel="noopener">Review source ↗</a></div>`
+          : l.email_lookup_done
+            ? `<span class="sub">${escapeHtml(l.email_status || 'No matching public contact email found.')}</span>`
+            : `<button class="demo" type="button" data-email-index="${i}">Find public email</button><div class="sub">Checks public results only</div>`;
+        return `<tr><td><div class="person">${escapeHtml(l.name)}</div><div class="sub">${escapeHtml(l.headline)}</div></td><td><span class="pill">${escapeHtml(l.category.replaceAll('_',' '))}</span></td><td class="score">${escapeHtml(l.score)}</td><td><a class="profile" href="${escapeHtml(l.profile_url)}" target="_blank" rel="noopener">View profile ↗</a><div class="sub">${escapeHtml(l.intent_phrase)}</div></td><td class="email-cell">${emailCell}</td><td class="message">${escapeHtml(l.suggested_message)}</td></tr>`;
+      }).join('');
+      document.querySelector('#results').innerHTML = `<table><thead><tr><th>Person</th><th>Intent</th><th>Score</th><th>Profile</th><th>Public email</th><th>Suggested message</th></tr></thead><tbody>${rows}</tbody></table>`;
+      document.querySelectorAll('[data-email-index]').forEach(button => button.addEventListener('click', () => lookupEmail(Number(button.dataset.emailIndex), button)));
       document.querySelector('#download')?.remove();
       const csvButton = document.createElement('button'); csvButton.id='download'; csvButton.className='demo'; csvButton.textContent='Download CSV'; csvButton.onclick=downloadCsv; document.querySelector('.results-head').append(csvButton);
     }
     function downloadCsv() {
-      const fields=['name','category','score','intent_phrase','headline','profile_url','matched_query','snippet','suggested_message'];
+      const fields=['name','category','score','intent_phrase','headline','profile_url','email','email_source','matched_query','snippet','suggested_message'];
       const quote=v=>'"'+String(v??'').replaceAll('"','""')+'"';
       const csv=[fields.join(','),...currentLeads.map(l=>fields.map(f=>quote(l[f])).join(','))].join('\r\n');
       const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='scrappy-leads.csv';a.click();URL.revokeObjectURL(a.href);
     }
+    async function lookupEmail(index, button) {
+      const lead = currentLeads[index]; if (!lead) return;
+      button.disabled = true; button.textContent = 'Checking…';
+      try {
+        const response = await fetch('/api/email', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:lead.name,profile_url:lead.profile_url})});
+        const data = await response.json(); if (!response.ok) throw new Error(data.error || 'Public email lookup failed.');
+        Object.assign(lead, data, {email_lookup_done:true}); render(currentLeads);
+      } catch (e) { showNotice(e.message, 'error'); button.disabled = false; button.textContent = 'Try public lookup again'; }
+    }
     async function search(demo=false) {
       submit.disabled=true; submit.textContent='Searching…'; document.querySelector('#mode').textContent=demo?'Sample mode':'Searching'; notice.className='notice';
       try {
-        const response=await fetch('/api/search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({demo, intent:document.querySelector('#query').value,min_score:Number(document.querySelector('#min-score').value),pages:Number(document.querySelector('#pages').value),include_unknown:document.querySelector('#unknown').checked})});
+        const response=await fetch('/api/search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({demo, intent:document.querySelector('#query').value,min_score:Number(document.querySelector('#min-score').value),pages:Number(document.querySelector('#pages').value),include_unknown:false})});
         const data=await response.json(); if(!response.ok) throw new Error(data.error||'Search failed.');
         render(data.leads); showNotice(data.message||'Search complete. Review the profiles and snippets before reaching out.'); document.querySelector('#mode').textContent=demo?'Sample results':'Search complete';
       } catch(e) { showNotice(e.message,'error'); document.querySelector('#mode').textContent='Needs setup'; }

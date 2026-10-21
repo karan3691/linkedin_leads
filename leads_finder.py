@@ -140,6 +140,9 @@ class Lead:
     snippet: str
     intent_phrase: str = ""
     suggested_message: str = ""
+    email: str = ""
+    email_source: str = ""
+    email_status: str = ""
 
 
 def normalize_linkedin_url(url: str):
@@ -200,6 +203,41 @@ def search_serpapi(query: str, api_key: str, page: int = 0):
     resp = requests.get("https://serpapi.com/search.json", params=params, timeout=30)
     resp.raise_for_status()
     return resp.json().get("organic_results", [])
+
+
+EMAIL_RE = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.I)
+
+
+def find_public_email(name: str, profile_url: str, api_key: str):
+    """Return an email only when a matching public result publishes it with contact context."""
+    normalized = normalize_linkedin_url(profile_url)
+    if not normalized:
+        raise ValueError("A LinkedIn profile URL is required.")
+    slug = urlparse(normalized).path.rsplit("/", 1)[-1]
+    query = f'"{name}" "{slug}" email contact'
+    results = search_serpapi(query, api_key)
+    normalized_name = " ".join(name.casefold().split())
+    for item in results:
+        title = item.get("title", "")
+        snippet = item.get("snippet", "")
+        link = item.get("link", "")
+        page_text = f"{title} {snippet}"
+        page_folded = " ".join(f"{page_text} {link}".casefold().split())
+        has_identity = normalized_name in page_folded or slug.casefold() in page_folded
+        has_contact_context = bool(re.search(r"\b(contact|email|e-mail)\b", page_text, re.I))
+        if not has_identity or not has_contact_context:
+            continue
+        try:
+            source = urlparse(link)
+        except ValueError:
+            continue
+        if source.scheme not in {"http", "https"} or not source.netloc:
+            continue
+        for email in EMAIL_RE.findall(page_text):
+            if "@example." in email.casefold() or email.casefold().endswith("@linkedin.com"):
+                continue
+            return email, link
+    return "", ""
 
 
 def build_leads(results, query: str, seen: set, min_score: int, include_unknown: bool = False):
@@ -265,7 +303,7 @@ DEMO_RESULTS = [
 
 def write_csv(leads, path: str):
     fields = ["name", "category", "score", "intent_phrase", "headline", "profile_url",
-              "matched_query", "snippet", "suggested_message"]
+              "email", "email_source", "matched_query", "snippet", "suggested_message"]
     with open(path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fields)
         writer.writeheader()
